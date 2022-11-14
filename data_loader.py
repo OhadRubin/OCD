@@ -9,6 +9,9 @@ import Lenet5
 from torch.utils.data import DataLoader
 from torchvision.transforms import ToTensor
 from copy import deepcopy
+import transformers
+from transformers import AutoModel
+import datasets
 def wrapper_dataset(config, args, device):
     if args.datatype == 'tinynerf':
         
@@ -76,6 +79,26 @@ def wrapper_dataset(config, args, device):
                 "\data\mnist", train=True, download=True, transform=ToTensor())
         test_dataset = mnist.MNIST(
                 "\data\mnist", train=False, download=True, transform=ToTensor())
+        train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
+        test_loader = DataLoader(test_dataset, batch_size=1)
+        train_ds, test_ds = [],[]
+        for idx, data in enumerate(train_loader):
+            train_x, train_label = data[0], data[1]
+            train_x = train_x[:,0,:,:].unsqueeze(1)
+            batch = {'input':train_x,'output':train_label}
+            train_ds.append(deepcopy(batch))
+        for idx, data in enumerate(test_loader):
+            train_x, train_label = data[0], data[1]
+            train_x = train_x[:,0,:,:].unsqueeze(1)
+            batch = {'input':train_x,'output':train_label}
+            test_ds.append(deepcopy(batch))
+    elif args.datatype == 'imdb':
+        model = AutoModel.from_pretrained("bert-base-cased")
+        datasets.load_dataset("imdb")
+        # train_dataset = mnist.MNIST(
+        #         "\data\mnist", train=True, download=True, transform=ToTensor())
+        # test_dataset = mnist.MNIST(
+        #         "\data\mnist", train=False, download=True, transform=ToTensor())
         train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=1)
         train_ds, test_ds = [],[]
