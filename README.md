@@ -26,19 +26,19 @@ The specific configs are optimizied for small footprint to allow low-end devices
 ## Examples:
 **1. for training nerf-OCD** <br />
 ```
-python run_func_OCD.py -e 0
+python run_func_OCD.py --eval 0
 ```
 **2. for evaluating nerf** <br />
 ```
-python run_func_OCD.py -e 1 -t 0 -pd ./checkpoints/model_ocd_tinynerf.pt -ps ./checkpoints/scale_model_tinynerf.pt
+python run_func_OCD.py --eval 1 --train 0 --diffusion_model_path ./checkpoints/model_ocd_tinynerf.pt --scale_model_path ./checkpoints/scale_model_tinynerf.pt
 ```
 **3. for training lenet5-OCD**<br />
 ```
-python run_func_OCD.py -e 0 -pb ./checkpoints/checkpoint_lenet5.pth -pc ./configs/train_mnist.json -pdtr ./data/mnist -pdts ./data/mnist -dt mnist -prc 0
+python run_func_OCD.py --eval 0 --backbone_path ./checkpoints/checkpoint_lenet5.pth --config_path ./configs/train_mnist.json --data_train_path./data/mnist -pdts ./data/mnist -dt mnist -prc 0
 ```
 **4. for evaluating lenet5-OCD** - First you need to train the model(!) <br />
 ```
-python run_func_OCD.py -e 1 -t 0 -pb ./checkpoints/checkpoint_lenet5.pth -pc ./configs/train_mnist.json -pdtr ./data/mnist -pdts ./data/mnist -dt mnist -prc 0 -pd ./checkpoints/model_ocd_mnist.pt -ps ./checkpoints/scale_model_mnist.pt
+python run_func_OCD.py --eval 1 --train 0 --backbone_path ./checkpoints/checkpoint_lenet5.pth --config_path ./configs/train_mnist.json --data_train_path./data/mnist -pdts ./data/mnist -dt mnist -prc 0 --diffusion_model_path ./checkpoints/model_ocd_mnist.pt --scale_model_path ./checkpoints/scale_model_mnist.pt
 ```
 ## Acknowledgments
 The tinyNeRF code base is from (https://github.com/krrish94/nerf-pytorch) Krishna Murthy's repo. <br />
