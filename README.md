@@ -34,11 +34,11 @@ python run_func_OCD.py --eval 1 --train 0 --diffusion_model_path ./checkpoints/m
 ```
 **3. for training lenet5-OCD**<br />
 ```
-python run_func_OCD.py --eval 0 --backbone_path ./checkpoints/checkpoint_lenet5.pth --config_path ./configs/train_mnist.json --data_train_path./data/mnist --data_test_path ./data/mnist -dt mnist --precompute_all 0
+python run_func_OCD.py --eval 0 --backbone_path ./checkpoints/checkpoint_lenet5.pth --config_path ./configs/train_mnist.json --data_train_path./data/mnist --data_test_path ./data/mnist --datatype mnist --precompute_all 0
 ```
 **4. for evaluating lenet5-OCD** - First you need to train the model(!) <br />
 ```
-python run_func_OCD.py --eval 1 --train 0 --backbone_path ./checkpoints/checkpoint_lenet5.pth --config_path ./configs/train_mnist.json --data_train_path./data/mnist --data_test_path ./data/mnist -dt mnist --precompute_all 0 --diffusion_model_path ./checkpoints/model_ocd_mnist.pt --scale_model_path ./checkpoints/scale_model_mnist.pt
+python run_func_OCD.py --eval 1 --train 0 --backbone_path ./checkpoints/checkpoint_lenet5.pth --config_path ./configs/train_mnist.json --data_train_path./data/mnist --data_test_path ./data/mnist --datatype mnist --precompute_all 0 --diffusion_model_path ./checkpoints/model_ocd_mnist.pt --scale_model_path ./checkpoints/scale_model_mnist.pt
 ```
 ## Acknowledgments
 The tinyNeRF code base is from (https://github.com/krrish94/nerf-pytorch) Krishna Murthy's repo. <br />
