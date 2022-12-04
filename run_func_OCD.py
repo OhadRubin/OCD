@@ -1,3 +1,10 @@
+import os
+
+if "DEBUG" in os.environ:
+  import debugpy
+  debugpy.listen(5678)
+  print("Waiting for debugger attach")
+  debugpy.wait_for_client()
 from pickle import FALSE
 import torch
 import torch.functional as F
@@ -10,12 +17,20 @@ import numpy as np
 from diffusion_ocd import Model,Model_Scale
 from utils_OCD import overfitting_batch_wrapper,noising,generalized_steps,ConfigWrapper
 import torch.utils.tensorboard as tb
-from train import train,vgg_encode
+from train import train,vgg_encode,eval_model
 from ema import EMAHelper
 import os
 import argparse
 import json
 from data_loader import wrapper_dataset
+
+
+
+
+
+
+
+
 
 
 parser = argparse.ArgumentParser()
@@ -78,15 +93,16 @@ tb_path = args.tensorboard_path # path to tensorboard log
 tb_logger = tb.SummaryWriter(log_dir=tb_path)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 lr = args.learning_rate # learning rate for the diffusion model & scale estimation model
-
+os.makedirs(config.checkpoint.checkpoint_path,exist_ok=True)
 diffusion_model = Model(config=config).cuda()
 loss_fn = torch.nn.MSELoss()
 scale_model = Model_Scale(config=config).cuda()
 if args.resume_training:
     diffusion_model.load_state_dict(torch.load(args.diffusion_model_path))
     scale_model.load_state_dict(torch.load(args.scale_model_path))
-train_loader, test_loader, model = wrapper_dataset(config, args, device)
-model.load_state_dict(torch.load(module_path))
+train_loader, test_loader,small_loader, model = wrapper_dataset(config, args, device)
+if False:
+    model.load_state_dict(torch.load(module_path))
 model = model.to(device)
 if config.training.loss == 'mse':
     opt_error_loss = torch.nn.MSELoss()
@@ -127,7 +143,7 @@ print(padding)
 if args.train:
     diffusion_model,scale_model = train(args=args, config=config, optimizer=optimizer, optimizer_scale=optimizer_scale,
             device=device, diffusion_model=diffusion_model, scale_model=scale_model,
-            model=model,  train_loader=train_loader, padding=padding, mat_shape=mat_shape,
+            model=model,  train_loader=(train_loader,small_loader,), padding=padding, mat_shape=mat_shape,
             ema_helper=ema_helper, tb_logger=tb_logger, loss_fn=loss_fn,
             opt_error_loss=opt_error_loss)
 else:
@@ -137,12 +153,16 @@ else:
 #################################################################################################
 ########################################### Test Phase ##########################################
 #################################################################################################
-
+# eval_model(test_loader,device,model,dmodel_original_weight,diffusion_model,scale_model,mat_shape,config,args)
+# eval_dict = eval_model(test_loader,device,model,dmodel_original_weight,diffusion_model,
+#                        scale_model,mat_shape,config,args,weight_name,opt_error_loss,padding)
 print('*'*100)
 ldiff,lopt,lbaseline = 0,0,0
+base_acc, opt_acc, ocd_acc = 0,0,0
 for idx, batch in enumerate(test_loader):
     batch['input'] = batch['input'].to(device)
     batch['output'] = batch['output'].to(device)
+    label = batch['output'].item()
     # Overfitting encapsulation #
     weight,hfirst,outin= overfitting_batch_wrapper(
         datatype=args.datatype,
@@ -160,14 +180,18 @@ for idx, batch in enumerate(test_loader):
         encoding_out = outin
     with torch.no_grad():
         std = scale_model(hfirst,encoding_out)
-    ldiffusion, loptimal, lbase, wdiff = generalized_steps(
+    ldiffusion, loptimal, lbase, wdiff,base_pl,opt_pl,ocd_pl = generalized_steps(
         named_parameter=weight_name, numstep=config.diffusion.diffusion_num_steps_eval,
         x=(diff_weight.unsqueeze(0),hfirst,encoding_out), model=diffusion_model,
-        bmodel=model, batch=batch, loss_fn=opt_error_loss,
+        bmodel=model, batch=batch, loss_fn=loss_fn,
         std=std, padding=padding,
         mat_shape=mat_shape, isnerf=(args.datatype=='tinynerf')
         )
+    
+    base_acc+= base_pl.argmax().item()==label
+    opt_acc+=opt_pl.argmax().item()==label
+    ocd_acc+=ocd_pl.argmax().item()==label
     ldiff += ldiffusion
     lopt += loptimal
     lbaseline += lbase
-    print(f"\rBaseline loss {lbaseline/(idx+1)}, Overfitted loss {lopt/(idx+1)}, Diffusion loss {ldiff/(idx+1)}",end='')
+    print(f"\r {idx}: {ocd_acc/(idx+1):.3f},{base_acc/(idx+1):.3f},{ocd_acc/(base_acc+1e-12):.3f},{lbaseline/ldiff:.3f}",end='')

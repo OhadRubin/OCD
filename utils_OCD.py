@@ -120,15 +120,18 @@ batch=None, loss_fn=None,n_iteration=10,lr=0.5e-4,verbose=False):
     opt = torch.optim.Adam([
                 {'params': param_weight},
             ], lr=lr)
-    
+    # if False:
     for epoch in range(n_iteration):
         opt.zero_grad()
-        predicted_labels,h = base_model(batch['input'].float())
+        predicted_labels,h = base_model(batch['input'])
         if epoch == 0:
             hx,hy = h
             hfirst = copy.deepcopy((hx.detach(),hy.detach()))
             out = copy.deepcopy(predicted_labels.detach())
-        loss = loss_fn(predicted_labels, batch['output'].long())
+            # break
+        # print(batch['output'])
+        # print(predicted_labels)
+        loss = loss_fn(predicted_labels, batch['output'])
         loss.backward()
         opt.step()
     weight = base_model.get_parameter(weight_name+'.weight').detach()
@@ -195,19 +198,23 @@ def check_ps(named_parameter='',bmodel=None,w=0,
 batch=None, loss_fn=None,std=0,dopt=0):
     model = copy.deepcopy(bmodel)
     r = copy.deepcopy( model.get_parameter(named_parameter+'.weight').data)
-    predicted_labels,h = model(batch['input'])
-    loss = loss_fn(predicted_labels, batch['output'].long())
+    base_predicted_labels,h = model(batch['input'])
+    # loss = loss_fn(predicted_labels, batch['output'].long())
+    loss = loss_fn(base_predicted_labels, batch['output'])
     lbase = loss.item()
     model.get_parameter(named_parameter+'.weight').data += dopt.squeeze()
-    predicted_labels,h = model(batch['input'])
-    loss = loss_fn(predicted_labels, batch['output'].long())
+    opt_predicted_labels,h = model(batch['input'])
+    # loss = loss_fn(predicted_labels, batch['output'].long())
+    loss = loss_fn(opt_predicted_labels, batch['output'])
     loptimal = loss.item()
     model.get_parameter(named_parameter+'.weight').data = r + std*w.squeeze().to('cuda')
-    predicted_labels,h = model(batch['input'])
-    loss = loss_fn(predicted_labels, batch['output'].long())
+    ocd_predicted_labels,h = model(batch['input'])
+    # loss = loss_fn(predicted_labels, batch['output'].long())
+    loss = loss_fn(ocd_predicted_labels, batch['output'])
     ldiffusion = loss.item()
     del model
-    return ldiffusion,loptimal,lbase
+    return ldiffusion,loptimal,lbase,base_predicted_labels,opt_predicted_labels,ocd_predicted_labels
+
 
 def check_ps_wrapper(isnerf=0,named_parameter='',bmodel=None,w=0,
 batch=None, loss_fn=None,std=0,dopt=0):
@@ -270,9 +277,9 @@ def generalized_steps(named_parameter, numstep, x, model, bmodel, batch, loss_fn
             xt_next = at_next.sqrt() * x0_t + c1 * torch.randn_like(x) + c2 * et
             xs.append(xt_next.to('cpu'))
         wdiff = xs[-1]
-        ldiffusion,loptimal,lbase = check_ps_wrapper(isnerf=isnerf,named_parameter=named_parameter,
+        ldiffusion,loptimal,lbase,base_predicted_labels,opt_predicted_labels,ocd_predicted_labels = check_ps_wrapper(isnerf=isnerf,named_parameter=named_parameter,
             bmodel=bmodel, w=wdiff.squeeze(), batch=batch,
             loss_fn=loss_fn,std=std,dopt=dopt
             )
-    return ldiffusion,loptimal,lbase,wdiff
+    return ldiffusion,loptimal,lbase,wdiff,base_predicted_labels,opt_predicted_labels,ocd_predicted_labels
 
