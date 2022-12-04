@@ -1,0 +1,44 @@
+{
+    "training": {
+        "epochs": 50,
+        "grad_accum": 8,
+        "grad_clip": 1.0,
+        "loss": "ce"
+    },
+    "model": {
+        "weight_name": "rankone.dense",
+    
+        "name": "bert"
+    },
+    "checkpoint": {
+        "checkpoint_path": "/a/home/cc/students/cs/ohadr/netapp/OCD/experiments/exp13",
+        "n_checkpoint": 1
+    },
+    "diffusion": {
+        "dropout": 0.4,
+        "diffusion_num_steps": 1000,
+        "diffusion_num_steps_eval": 100,
+        "nch": 64,
+        "out_ch": 1,
+        "ch_mult": [
+            1,
+            1,
+            2,
+            2,
+            4,
+            4
+        ],
+        "dim_in": 768,
+        "dim_lat_out": 768,
+        "dim_output": 2,
+        "scale": {
+            "ch": 32,
+            "in_dim": 768,
+            "out_dim": 768
+        }
+    },
+    "overfitting": {
+        "lr_overfitting": 5e-3,
+        "n_overfitting": 3
+    }
+}
